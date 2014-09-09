@@ -4,7 +4,7 @@
   uses plumbing's lazy graph compiler. Define new steps of the algorithm here."
   (:refer-clojure :exclude [defn])
   (:require [schema.core :as s :refer (defn)]
-	    [plumbing.core :refer (fnk defnk)]
+	    [plumbing.core :refer (fnk defnk letk)]
 	    [plumbing.fnk.pfnk :as pfnk]
 	    [plumbing.graph :as graph]
 	    [clojure.string :as str]
@@ -68,7 +68,7 @@
        vals
        (filter (comp :query? meta))))
 
-(defnk create
+(defn create
   "Create a new lazy NLP model based on the given map.
 
   (let [model (create {:pipeline (nlp/pipeline {:type :clearnlp})
@@ -79,11 +79,13 @@
     (-> model :sentences) => (just (contains {:text \"This is a test.\"
 					      :span [0 15]})))"
   {:added "0.1.0"}
-  [pipeline :- {:type s/Any, s/Any s/Any}
-   {text ""}
-   {queries (queries-from-namespace 't6.snippets.triples)}
-   :as m]
-  (let [m (merge m {:pipeline (nlp/pipeline pipeline)
-		    :text (s/validate s/Str text)
-		    :queries queries})]
-    (merge m ((graph/lazy-compile dependency-graph) m))))
+  ([m] (create dependency-graph m))
+  ([graph m]
+     (letk [[pipeline {text ""}
+             {queries (keys @nlp/triple-query-registry)}] m]
+       (let [m (merge m {:pipeline (if (map? pipeline)
+                                     (nlp/pipeline pipeline)
+                                     pipeline)
+                         :text (s/validate s/Str text)
+                         :queries queries})]
+         (merge m ((graph/lazy-compile graph) m))))))

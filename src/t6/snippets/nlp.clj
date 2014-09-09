@@ -148,7 +148,7 @@
   {(s/optional-key :coreferences)    CorefChainMap
    (s/optional-key :semantic-graphs) [SemanticGraph]
    (s/optional-key :reified-triples) [ReifiedTriple]
-   (s/optional-key :queries)         [s/Any]})
+   (s/optional-key :queries)         (s/either clojure.lang.IDeref [s/Any])})
 
 (s/def ^:dynamic *db* {})
 
@@ -553,7 +553,7 @@ in terms of `depends`."
 (defn ^:private triple-queries
   [q]
   (l/fresh [triple subject predicate object negation query query-name]
-    (l/membero query (:queries *db*))
+    (l/membero query (:queries *db* []))
     (l/project [query]
       (l/== query-name (triple-query-name query))
       (query triple))
@@ -685,6 +685,35 @@ in terms of `depends`."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Triple queries definition
 
+(def triple-query-registry
+  (atom {}))
+
+(defn register-triple-query!
+  [query]
+  (when (var? query)
+    (add-watch triple-query-registry
+               ::dispatch-watchers
+               (fn [_ _ _ _]
+                 (doseq [[key watcher] (@triple-query-registry query)]
+                   (prn key watcher)
+                   (watcher key query)))))
+  (swap! triple-query-registry update-in [query] merge {}))
+
+(defn unregister-triple-query!
+  [query]
+  (when (var? query)
+    (remove-watch query ::dispatch-watchers))
+  (swap! triple-query-registry clojure.core/disj query))
+
+(defn watch-query
+  "Calls `watch-fn` when the query changes. Note that query has to be a var."
+  [query key watch-fn]
+  (swap! triple-query-registry
+         (fn [registry]
+           (if-let [_ (registry query)]
+             (update-in registry [query] merge {key watch-fn})
+             registry))))
+
 (defmacro ^:no-doc =>
   [var triple & templates]
   (if (zero? (count templates))
@@ -704,12 +733,9 @@ in terms of `depends`."
 	triple       (gensym "triple")
 	lvars        (atom {})
 	counter      (atom -1)
-
 	name         (vary-meta name assoc
 				:no-check true
 				:arglists ''([triple])
-				;; deprecated
-				:triple-query? true
 				:query? true)
 	goals        (clojure.walk/postwalk
 		      (fn [x]
@@ -737,10 +763,12 @@ in terms of `depends`."
 		   sym sym))
 	nil))
 
-    `(def ~name
-      (with-meta
-	(fn [~triple]
-	  (l/fresh [~@(keys (deref lvars))]
-	    ~@goals))
-	{:ns   *ns*
-	 :name '~name}))))
+    `(do (def ~name
+           (with-meta
+             (fn [~triple]
+               (l/fresh [~@(keys (deref lvars))]
+                 ~@goals))
+             {:ns   *ns*
+              :name '~name}))
+         (register-triple-query! (var ~name))
+         (var ~name))))
