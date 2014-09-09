@@ -10,8 +10,13 @@
 	    [clojure.string :as str]
 	    [clojure.set :as set]
 	    [t6.snippets.nlp :as nlp]
+            [t6.snippets.util :as u]
 	    [t6.snippets.span :as span]
 	    t6.snippets.triples))
+
+(defn log [what]
+  ;; TODO
+  (println what))
 
 (def dependency-graph
   "This describes the library's dependency graph. The parameters to the
@@ -22,30 +27,34 @@
   (graph/graph
    :annotation
    (fnk [pipeline, text :- s/Str]
+     (log "realizing :annotation")
      (pipeline text))
 
    :tokens
    (fnk [annotation :- (s/protocol nlp/IAnnotation)]
+     (log "realizing :tokens")
      (nlp/tokens annotation))
 
    :sentences
    (fnk [annotation :- (s/protocol nlp/IAnnotation)]
+     (log "realizing :sentences")
      (nlp/sentences annotation))
 
    :semantic-graphs
    (fnk [annotation :- (s/protocol nlp/IAnnotation)]
+     (log "realizing :semantic-graphs")
      (nlp/semantic-graphs annotation))
 
    :coreferences
    (fnk [annotation :- (s/protocol nlp/IAnnotation)]
+     (log "realizing :coreferences")
      (nlp/coreferences annotation))
 
    :triples
    (fnk [semantic-graphs :- [nlp/SemanticGraph],
-	 coreferences ;; :- nlp/CorefChainMap,
 	 queries]
+     (log "realizing :triples")
      (nlp/with-db {:semantic-graphs semantic-graphs
-		   :coreferences    coreferences
 		   :queries         queries}
        (nlp/triples)))
 
@@ -53,6 +62,7 @@
    (fnk [semantic-graphs :- [nlp/SemanticGraph],
 	 coreferences ;; :- nlp/CorefChainMap,
 	 queries]
+     (log "realizing :grouped-triples")
      (nlp/with-db {:semantic-graphs semantic-graphs
 		   :coreferences    coreferences
 		   :queries         queries}
@@ -60,6 +70,7 @@
 
    :reified-triples
    (fnk [grouped-triples :- [nlp/GroupedTriple]]
+     (log "realizing :reified-triples")
      (nlp/reify-triples grouped-triples))))
 
 (defn queries-from-namespace
@@ -88,4 +99,4 @@
                                      pipeline)
                          :text (s/validate s/Str text)
                          :queries queries})]
-         (merge m ((graph/lazy-compile graph) m))))))
+         (u/lazy-merge m ((graph/lazy-compile graph) m))))))

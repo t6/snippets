@@ -695,7 +695,6 @@ in terms of `depends`."
                ::dispatch-watchers
                (fn [_ _ _ _]
                  (doseq [[key watcher] (@triple-query-registry query)]
-                   (prn key watcher)
                    (watcher key query)))))
   (swap! triple-query-registry update-in [query] merge {}))
 
