@@ -22,6 +22,7 @@
    (fnk [token tag sentence index :as word]
      (merge
       {:label (format "%s-%s-%s:%s" token (name tag) sentence index)
+       :fontname "times"
        :shape "box"}
       (cond
        (nlp/noun? word)
@@ -35,13 +36,15 @@
        (nlp/pronoun? word)
        {:style "filled"})))
 
+   :options {:dpi "72"}
    :edge->descriptor
    (fn [src dest]
      (when-let [relation (some (fn [[rel d]]
                                  (if (= d dest)
                                    rel))
                                (-> graph (get :edges) (get src)))]
-       {:label (if (keyword? relation)
+       {:fontname "times"
+        :label (if (keyword? relation)
                  (name relation)
                  (str/join "_" (map name relation)))}))))
 
