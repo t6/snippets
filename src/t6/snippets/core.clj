@@ -90,7 +90,7 @@
     (-> model :sentences) => (just (contains {:text \"This is a test.\"
 					      :span [0 15]})))"
   {:added "0.1.0"}
-  ([m] (create dependency-graph m))
+  ([m] (create {} m))
   ([graph m]
      (letk [[pipeline {text ""}
              {queries (keys @nlp/triple-query-registry)}] m]
@@ -99,4 +99,4 @@
                                      pipeline)
                          :text (s/validate s/Str text)
                          :queries queries})]
-         (u/lazy-merge m ((graph/lazy-compile graph) m))))))
+         (u/lazy-merge m ((graph/lazy-compile (merge dependency-graph graph)) m))))))
