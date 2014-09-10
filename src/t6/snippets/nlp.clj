@@ -1,6 +1,6 @@
 (ns t6.snippets.nlp
   (:refer-clojure :exclude [conj ref mod num comp agent defn])
-  (:require [schema.core :as s :refer (defn)]
+  (:require [schema.core :as s :refer (defn defschema)]
 	    [plumbing.core :refer (fnk for-map)]
 	    [clojure.string :as str]
 	    [clojure.set :as set]
@@ -14,7 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; NLP data structures
 
-(def Sentence
+(defschema Sentence
   "Represents a sentence in the input text.
 
     :text  a substring of the input text as implied by the sentence's :span
@@ -26,7 +26,7 @@
    :index s/Int
    :span span/Span})
 
-(def Token
+(defschema Token
   {:type (s/enum :token)
    :sentence s/Int
    :index s/Int
@@ -36,7 +36,7 @@
    :span span/Span
    (s/optional-key :ne) s/Str})
 
-(def Word
+(defschema Word
   "While this may seem the same as a Token it is not.
   A word map corresponds to a node in the semantic graph.
   Semantic graphs do not guarantee that every token
@@ -49,7 +49,7 @@
    :tag      s/Str
    :span     span/Span})
 
-(def WordRelation
+(defschema WordRelation
   "The label of an edge in a semantic graph. Some NLP libraries
   post-processes the graph and collapse some nodes into one.
   CoreNLP collapses among others conjunctions and the resulting
@@ -57,13 +57,13 @@
   We represent this as a vector [:conj :and] or [:conj :or] instead."
   (s/either s/Keyword [(s/one s/Keyword "") (s/one s/Keyword "")]))
 
-(def AdjacentNode
+(defschema AdjacentNode
   "An adjacent node is a vector of the edge label to the node
   and the node itself."
   [(s/one WordRelation "edge label")
    (s/one Word "node")])
 
-(def SemanticGraph
+(defschema SemanticGraph
   "A Clojure representation of a semantic (or dependency) graph.
   The graph is given as a vector of nodes (-> :nodes) with an adjacency
   function that maps the nodes to their adjacent nodes (-> :adjacent).
@@ -78,7 +78,7 @@
    :index s/Int
    :span  span/Span})
 
-(def MentionMap
+(defschema MentionMap
   ""
   {:type         (s/enum :mention-map)
    :cluster      s/Int
@@ -92,13 +92,13 @@
    :number       (s/enum :plural :singular :unknown)
    (s/optional-key :id) s/Int})
 
-(def CorefChainMap
+(defschema CorefChainMap
   {s/Int [MentionMap]})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Triples
 
-(def Triple
+(defschema Triple
   "A triple is made of a single word `subject` and `object` and a `predicate`
   that performs some action with the `subject` or `object`. The `predicate` can
   either be a corresponding word map or a keyword if the action is implied by
@@ -110,7 +110,7 @@
    :negation  (s/maybe Word)
    :query     s/Keyword})
 
-(def GroupedTriple
+(defschema GroupedTriple
   "A GroupedTriple represents a triple where the subject (or `subject-group`)
   and object (or `object-group`) is made up of all words in the original text
   that are together in a coref chain.
@@ -122,7 +122,7 @@
    :object-group  [Word]
    :negation      (s/maybe Word)})
 
-(def ReifiedWordGroup
+(defschema ReifiedWordGroup
   "A `ReifiedTriple` is based on a `GroupedTriple`. It associates a unique
   symbol with a subject or object group. `subject` and `object` are a map with
   keys `:symbol`, `:group`.
@@ -134,7 +134,7 @@
    :symbol s/Symbol
    :group  [Word]})
 
-(def ReifiedTriple
+(defschema ReifiedTriple
   {:type      (s/enum :reified-triple)
    :subject   ReifiedWordGroup
    :predicate s/Keyword
@@ -144,7 +144,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Creating and working with NLP pipelines
 
-(def db-schema
+(defschema db-schema
   {(s/optional-key :coreferences)    CorefChainMap
    (s/optional-key :semantic-graphs) [SemanticGraph]
    (s/optional-key :reified-triples) [ReifiedTriple]

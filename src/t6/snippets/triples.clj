@@ -3,9 +3,7 @@
             [clojure.core.logic :as l]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Queries that build a triple
-;;; For example triples (+ input texts) look at the tests in
-;;; `clide.nlp.aspect.triples-expectations`.
+;;; Triple queries
 
 (defquery nsubj-amod
   ;; give some example texts and the triples that should be created
