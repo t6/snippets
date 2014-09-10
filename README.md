@@ -53,6 +53,12 @@ ClearNLP backend pulls in more than 700 MiB of data.
 ;; => [{:subject {:type :word, :sentence 0, :token "This", :lemma "this", :tag "DT", :span [0 4], :index 1}, :predicate {:type :word, :sentence 0, :token "is", :lemma "is", :tag "VBZ", :span [5 7], :index 2}, :object {:type :word, :sentence 0, :token "test", :lemma "test", :tag "NN", :span [10 14], :index 4}, :negation nil, :query t6.snippets.triples/nsubj-pred-dobj}]
 ```
 
+## Differences from the report
+
+ * Triple builder are now called triple queries
+ * The `same-as` relation is now called `linked`
+ * The syntax for defining triple queries changed. See [`triples.clj`](https://github.com/t6/snippets/blob/master/src/t6/snippets/triples.clj) for the current syntax.
+
 ## License
 
 Copyright © 2014 Tobias Kortkamp
