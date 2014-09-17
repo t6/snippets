@@ -50,28 +50,23 @@
      (log "realizing :coreferences")
      (nlp/coreferences annotation))
 
-   :triples
-   (fnk [semantic-graphs :- [nlp/SemanticGraph],
-	 queries]
-     (log "realizing :triples")
-     (nlp/with-db {:semantic-graphs semantic-graphs
-		   :queries         queries}
-       (nlp/triples)))
+   :triple-primitives
+   (fnk [semantic-graphs :- [nlp/SemanticGraph] queries :as this]
+     (log "realizing :triple-primitives")
+     (nlp/with-db this (nlp/triple-primitives)))
 
-   :grouped-triples
+   :grouped-triple-primitives
    (fnk [semantic-graphs :- [nlp/SemanticGraph],
 	 coreferences ;; :- nlp/CorefChainMap,
-	 queries]
-     (log "realizing :grouped-triples")
-     (nlp/with-db {:semantic-graphs semantic-graphs
-		   :coreferences    coreferences
-		   :queries         queries}
-       (nlp/grouped-triples)))
+	 queries
+         :as this]
+     (log "realizing :grouped-triple-primitives")
+     (nlp/with-db this (nlp/grouped-triple-primitives)))
 
-   :reified-triples
-   (fnk [grouped-triples :- [nlp/GroupedTriple]]
-     (log "realizing :reified-triples")
-     (nlp/reify-triples grouped-triples))))
+   :triples
+   (fnk [grouped-triple-primitives :- [nlp/GroupedTriplePrimitive]]
+     (log "realizing :triples")
+     (nlp/reify-triples grouped-triple-primitives))))
 
 (defn queries-from-namespace
   [ns :- s/Symbol]

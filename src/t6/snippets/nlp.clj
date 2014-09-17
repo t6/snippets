@@ -98,35 +98,35 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Triples
 
-(defschema TriplePredicate
-  {:type      (s/enum :triple-predicate)
+(defschema PredicatePrimitive
+  {:type      (s/enum :predicate-primitive)
    :derived?  s/Bool
    :word      (s/either s/Keyword Word)
    :negation  (s/maybe Word)})
 
-(defschema Triple
+(defschema TriplePrimitive
   "A triple is made of a single word `subject` and `object` and a `predicate`
   that performs some action with the `subject` or `object`. The `predicate` can
   either be a corresponding word map or a keyword if the action is implied by
   the semantic graph."
-  {:type      (s/enum :triple)
+  {:type      (s/enum :triple-primitive)
    :subject   Word
-   :predicate TriplePredicate
+   :predicate PredicatePrimitive
    :object    Word
    :query     s/Keyword})
 
-(defschema GroupedTriple
+(defschema GroupedTriplePrimitive
   "A GroupedTriple represents a triple where the subject (or `subject-group`)
   and object (or `object-group`) is made up of all words in the original text
   that are together in a coref chain.
 
   It preserves the original triple it is based on its metadata (`:origin`)."
-  {:type          (s/enum :grouped-triple)
+  {:type          (s/enum :grouped-triple-primitive)
    :subject-group [Word]
-   :predicate     TriplePredicate
+   :predicate     PredicatePrimitive
    :object-group  [Word]})
 
-(defschema ReifiedWordGroup
+(defschema WordGroup
   "A `ReifiedTriple` is based on a `GroupedTriple`. It associates a unique
   symbol with a subject or object group. `subject` and `object` are a map with
   keys `:symbol`, `:group`.
@@ -134,21 +134,21 @@
   Like a `GroupedTriple` it preserves the `Triple` it is based on (`origin`) in
   its metadata, so that the triple's identity only depends on its `subject`,
   `object` and `predicate`."
-  {:type   (s/enum :reified-word-group)
+  {:type   (s/enum :word-group)
    :symbol s/Symbol
    :group  [Word]})
 
-(defschema ReifiedTriplePredicate
-  {:type       (s/enum :reified-triple-predicate)
+(defschema Predicate
+  {:type     (s/enum :predicate)
    ;; TODO: Rename to keyword?
-   :symbol     s/Keyword
-   :negated?   s/Bool})
+   :symbol   s/Keyword
+   :negated? s/Bool})
 
-(defschema ReifiedTriple
-  {:type       (s/enum :reified-triple)
-   :subject    ReifiedWordGroup
-   :predicate  ReifiedTriplePredicate
-   :object     ReifiedWordGroup})
+(defschema Triple
+  {:type      (s/enum :triple)
+   :subject   WordGroup
+   :predicate Predicate
+   :object    WordGroup})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Creating and working with NLP pipelines
@@ -156,7 +156,7 @@
 (defschema db-schema
   {(s/optional-key :coreferences)    CorefChainMap
    (s/optional-key :semantic-graphs) [SemanticGraph]
-   (s/optional-key :reified-triples) [ReifiedTriple]
+   (s/optional-key :triples)         [Triple]
    (s/optional-key :queries)         (s/either clojure.lang.IDeref [s/Any])})
 
 (s/def ^:dynamic *db* {})
@@ -223,52 +223,52 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Data structure utility functions
 
-(defn word-map->text :- s/Str
+(defn word->text :- s/Str
   [word :- (s/maybe Word)]
   (if word
     (letk [[token tag sentence index] word]
       (format "%s-%s-%s:%s" token (name tag) sentence index))
     "(nil)"))
 
+(defn triple-primitive->string :- s/Str
+  "triple->string"
+  {:added "0.1.0"}
+  ([t :- TriplePrimitive] (triple-primitive->string "[%s %s %s]" t))
+  ([fmt :- s/Str
+    {:keys [subject predicate object]} :- TriplePrimitive]
+    (format fmt
+	    (word->text subject)
+	    (str (if (:derived? predicate)
+		   (str (:word predicate))
+		   (word->text (:word predicate)))
+		 (if (:negation predicate)
+		   (str "[" (word->text (:negation predicate)) "]")))
+	    (word->text object))))
+
+(defn grouped-triple-primitive->string :- s/Str
+  "grouped-triple->string"
+  {:added "0.1.0"}
+  ([t :- GroupedTriplePrimitive] (grouped-triple-primitive->string "[%s %s %s]" t))
+  ([fmt :- s/Str
+    {:keys [subject-group object-group predicate]} :- GroupedTriplePrimitive]
+	    (format fmt
+		    (print-str (mapv word->text subject-group))
+		    (str (if (:derived? predicate)
+			   (str (:word predicate))
+			   (word->text (:word predicate)))
+			 (if (:negation predicate)
+			   (str "[" (word->text (:negation predicate)) "]")))
+		    (print-str (mapv word->text object-group)))))
+
 (defn triple->string :- s/Str
   "triple->string"
   {:added "0.1.0"}
   ([t :- Triple] (triple->string "[%s %s %s]" t))
   ([fmt :- s/Str
-    {:keys [subject predicate object]} :- Triple]
-    (format fmt
-	    (word-map->text subject)
-	    (str (if (:derived? predicate)
-		   (str (:word predicate))
-		   (word-map->text (:word predicate)))
-		 (if (:negation predicate)
-		   (str "[" (word-map->text (:negation predicate)) "]")))
-	    (word-map->text object))))
-
-(defn grouped-triple->string :- s/Str
-  "grouped-triple->string"
-  {:added "0.1.0"}
-  ([t :- GroupedTriple] (grouped-triple->string "[%s %s %s]" t))
-  ([fmt :- s/Str
-    {:keys [subject-group object-group predicate]} :- GroupedTriple]
-	    (format fmt
-		    (print-str (mapv word-map->text subject-group))
-		    (str (if (:derived? predicate)
-			   (str (:word predicate))
-			   (word-map->text (:word predicate)))
-			 (if (:negation predicate)
-			   (str "[" (word-map->text (:negation predicate)) "]")))
-		    (print-str (mapv word-map->text object-group)))))
-
-(defn reified-triple->string :- s/Str
-  "reified-triple->string"
-  {:added "0.1.0"}
-  ([t :- ReifiedTriple] (reified-triple->string "[%s %s %s]" t))
-  ([fmt :- s/Str
-    {:keys [subject object predicate]} :- ReifiedTriple]
+    {:keys [subject object predicate]} :- Triple]
      (apply format fmt (mapv :symbol [subject predicate object]))))
 
-(defn reified-triple->vector
+(defn triple->vector
   :- [(s/one s/Symbol "subject")
       (s/one s/Keyword "predicate")
       (s/one s/Symbol "object")]
@@ -278,7 +278,7 @@ a triple when debugging at the REPL. The `subject` and `object` values
 of the triple are available in the metadata of the appropriate element
 in the vector."
   {:added "0.1.0"}
-  [{:keys [subject object predicate] :as t} :- ReifiedTriple]
+  [{:keys [subject object predicate] :as t} :- Triple]
   (with-meta (mapv :symbol [subject predicate object])
     (meta t)))
 
@@ -330,16 +330,16 @@ in the vector."
   (fn [a]
     (l/to-stream
      (for [graph     (:semantic-graphs *db*)
-	   [p edges] (:edges graph)
-	   [l c]     edges]
+           [p edges] (:edges graph)
+           [l c]     edges]
        (l/unify a [parent label child] [p l c])))))
 
 (defn ^:deprecated depends
   [child label parent]
   (edge parent label child))
 
-(defn word-map
-  "word-map"
+(defn word
+  "word"
   {:added "0.1.0"}
   [node]
   (fn [a]
@@ -405,7 +405,7 @@ in terms of `depends`."
   (l/project [mention]
    (l/fresh [index tag sentence]
      (l/featurec mention {:sentence sentence})
-     (word-map q)
+     (word q)
      (l/pred q (some-fn pronoun? noun? determiner?))
      (l/featurec q {:index index, :sentence sentence})
      (l/pred index (partial span/point-inside? mention)))))
@@ -441,7 +441,7 @@ in terms of `depends`."
   ;; add identities for every word (that has a
   ;; corresponding node on a semantic graph)
   (l/fresh [w]
-    (word-map w)
+    (word w)
     (l/== [w1 w2] [w w])))
 
 (defn linked-wh-words
@@ -472,25 +472,18 @@ in terms of `depends`."
   "linked"
   {:added "0.1.0"}
   [w1 w2]
-  (l/fresh [c1 c2]
-    (l/conde
-     [(linked-from-coreferences c1 c2)]
-     [(linked-semantic-graph-node-identity w1 w2)]
-     [(linked-wh-words c1 c2)]
-     [(linked-nn-connected-nouns c1 c2)])
+  (l/conde
+   [(linked-from-coreferences w1 w2)]
+   [(linked-semantic-graph-node-identity w1 w2)]
+   [(linked-wh-words w1 w2)]
+   [(linked-nn-connected-nouns w1 w2)]))
 
-    (l/conde
-     [(l/!= c1 c2) (l/== [w1 w2] [c1 c2])]
-     [(l/!= c1 c2) (l/== [w1 w2] [c2 c1])]
-     [(l/== [w1 w2] [c1 c1])]
-     [(l/== [w1 w2] [c2 c2])])))
-
-(defn linked-word-maps
+(defn linked-words
   "Unifies `q` with a vector of all words `w` is linked to."
   {:added "0.1.0"}
   [w q]
   (l/project [w]
-   (->> (l/run-nc* [q] (linked w q))
+    (->> (l/run-nc* [q] (linked w q))
 	distinct
 	(sort-by (juxt :sentence :index))
 	vec
@@ -562,39 +555,40 @@ in terms of `depends`."
     (l/!= subject object)
 
     (l/project [subject predicate object negation query-name]
-      (l/== q {:subject subject
+      (l/== q {:type :triple-primitive
+               :subject subject
 	       :predicate {:derived? (keyword? predicate)
-                           :type :predicate
+                           :type :predicate-primitive
                            :word predicate
                            :negation negation}
 	       :object object
 	       :query query-name}))))
 
-(defn triples :- [Triple]
+(defn triple-primitives :- [TriplePrimitive]
   "triples"
   {:added "0.1.0"}
   []
-  (vec (distinct (l/run* [q] (triple-queries q)))))
+  (vec (distinct (l/run-nc* [q] (triple-queries q)))))
 
-(defn grouped-triples :- [GroupedTriple]
+(defn grouped-triple-primitives :- [GroupedTriplePrimitive]
   "grouped-triples"
   {:added "0.1.0"}
   []
   (vec
    (distinct
-    (l/run* [q]
+    (l/run-nc* [q]
       (l/fresh [triple subject object subject-group object-group]
 	(triple-queries triple)
-	(l/featurec triple {:subject subject, :object object})
-	(linked-word-maps subject subject-group)
-	(linked-word-maps object object-group)
+	(l/featurec triple {:subject subject, :object object})        
+	(linked-words subject subject-group)
+	(linked-words object object-group)
 
         ;; prevent triples where subject and object refer to the same word group
         (l/!= subject-group object-group)
 
 	(l/project [triple subject-group object-group]
 		   (l/== q (with-meta
-			     {:type          :grouped-triple
+			     {:type          :grouped-triple-primitive
 			      :subject-group subject-group
 			      :predicate     (:predicate triple)
 			      :object-group  object-group}
@@ -618,9 +612,9 @@ in terms of `depends`."
 		(str/join "-"))]
     (symbol (if (Character/isDigit ^Character (nth s 0)) (str "num-" s) s))))
 
-(defnk reify-triple-predicate :- ReifiedTriplePredicate
+(defnk reify-predicate :- Predicate
   [derived? word negation]
-  {:type :reified-triple-predicate
+  {:type :predicate
    :symbol (keyword (str (if negation
                            "not-")
                          (if (keyword? word)
@@ -628,20 +622,20 @@ in terms of `depends`."
                            (:lemma word))))
    :negated? (boolean negation)})
 
-(defn ^:private reify-triple :- ReifiedTriple
+(defn ^:private reify-triple :- Triple
   [group->unique-symbol :- {[Word] s/Symbol}
-   {:keys [subject-group predicate object-group negation] :as t} :- GroupedTriple]
+   {:keys [subject-group predicate object-group negation] :as t} :- GroupedTriplePrimitive]
   (let [subject-sym (group->unique-symbol subject-group)
-	pred        (reify-triple-predicate predicate)
+	pred        (reify-predicate predicate)
 	object-sym  (group->unique-symbol object-group)]
     (if (and subject-sym pred object-sym)
       (with-meta
-	{:type      :reified-triple
-	 :subject   {:type   :reified-word-group
+	{:type      :triple
+	 :subject   {:type   :word-group
 		     :symbol subject-sym
 		     :group  subject-group}
 	 :predicate pred
-	 :object    {:type   :reified-word-group
+	 :object    {:type   :word-group
 		     :symbol object-sym
 		     :group  object-group}}
 	(meta t))
@@ -651,7 +645,7 @@ in terms of `depends`."
 		       :group->unique-symbol group->unique-symbol})))))
 
 (defn ^:private symbol->groups :- {s/Symbol #{[Word]}}
-  [grouped-triples :- [GroupedTriple]]
+  [grouped-triples :- [GroupedTriplePrimitive]]
   (->> grouped-triples
        ;; build a sequence of maps that map a symbol to the set of all
        ;; noun groups that have that symbol
@@ -674,8 +668,8 @@ in terms of `depends`."
 	    [i group] (map-indexed vector groups)]
     group (symbol (str sym "-" i))))
 
-(defn reify-triples :- [ReifiedTriple]
-  [grouped-triples :- [GroupedTriple]]
+(defn reify-triples :- [Triple]
+  [grouped-triples :- [GroupedTriplePrimitive]]
   (->> grouped-triples
        (map (partial reify-triple (group->unique-symbol grouped-triples)))
        distinct
@@ -687,7 +681,7 @@ in terms of `depends`."
   [t]
   (fn [a]
     (l/to-stream
-     (for [triple (:reified-triples *db*)]
+     (for [triple (:triples *db*)]
        (l/unify a t triple)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

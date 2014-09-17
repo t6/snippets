@@ -170,7 +170,7 @@
                :triples '[[wide :be cm]]}]}
   (l/conde
    [(nlp/advmod _ ?a)]
-   [(nlp/word-map ?a)
+   [(nlp/word ?a)
     (l/pred ?a #(nlp/has-tags? #{"JJ"} %1))])
   (nlp/npadvmod ?a ?unit)
   (nlp/num ?unit _)
