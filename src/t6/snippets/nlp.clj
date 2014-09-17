@@ -1,7 +1,7 @@
 (ns t6.snippets.nlp
   (:refer-clojure :exclude [conj ref mod num comp agent defn])
   (:require [schema.core :as s :refer (defn defschema)]
-	    [plumbing.core :refer (fnk for-map)]
+	    [plumbing.core :refer (defnk fnk letk for-map)]
 	    [clojure.string :as str]
 	    [clojure.set :as set]
 	    [clojure.core.logic :as l]
@@ -98,6 +98,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Triples
 
+(defschema TriplePredicate
+  {:type      (s/enum :triple-predicate)
+   :derived?  s/Bool
+   :word      (s/either s/Keyword Word)
+   :negation  (s/maybe Word)})
+
 (defschema Triple
   "A triple is made of a single word `subject` and `object` and a `predicate`
   that performs some action with the `subject` or `object`. The `predicate` can
@@ -105,9 +111,8 @@
   the semantic graph."
   {:type      (s/enum :triple)
    :subject   Word
-   :predicate (s/either s/Keyword Word)
+   :predicate TriplePredicate
    :object    Word
-   :negation  (s/maybe Word)
    :query     s/Keyword})
 
 (defschema GroupedTriple
@@ -118,9 +123,8 @@
   It preserves the original triple it is based on its metadata (`:origin`)."
   {:type          (s/enum :grouped-triple)
    :subject-group [Word]
-   :predicate     (s/either s/Keyword Word)
-   :object-group  [Word]
-   :negation      (s/maybe Word)})
+   :predicate     TriplePredicate
+   :object-group  [Word]})
 
 (defschema ReifiedWordGroup
   "A `ReifiedTriple` is based on a `GroupedTriple`. It associates a unique
@@ -134,12 +138,17 @@
    :symbol s/Symbol
    :group  [Word]})
 
+(defschema ReifiedTriplePredicate
+  {:type       (s/enum :reified-triple-predicate)
+   ;; TODO: Rename to keyword?
+   :symbol     s/Keyword
+   :negated?   s/Bool})
+
 (defschema ReifiedTriple
-  {:type      (s/enum :reified-triple)
-   :subject   ReifiedWordGroup
-   :predicate s/Keyword
-   :object    ReifiedWordGroup
-   :negation  (s/maybe Word)})
+  {:type       (s/enum :reified-triple)
+   :subject    ReifiedWordGroup
+   :predicate  ReifiedTriplePredicate
+   :object     ReifiedWordGroup})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Creating and working with NLP pipelines
@@ -217,7 +226,7 @@
 (defn word-map->text :- s/Str
   [word :- (s/maybe Word)]
   (if word
-    (let [{:keys [token tag sentence index]} word]
+    (letk [[token tag sentence index] word]
       (format "%s-%s-%s:%s" token (name tag) sentence index))
     "(nil)"))
 
@@ -226,14 +235,14 @@
   {:added "0.1.0"}
   ([t :- Triple] (triple->string "[%s %s %s]" t))
   ([fmt :- s/Str
-    {:keys [subject predicate object negation]} :- Triple]
+    {:keys [subject predicate object]} :- Triple]
     (format fmt
 	    (word-map->text subject)
-	    (str (if (keyword? predicate)
-		   (str predicate)
-		   (word-map->text predicate))
-		 (if negation
-		   (str "[" (word-map->text negation) "]")))
+	    (str (if (:derived? predicate)
+		   (str (:word predicate))
+		   (word-map->text (:word predicate)))
+		 (if (:negation predicate)
+		   (str "[" (word-map->text (:negation predicate)) "]")))
 	    (word-map->text object))))
 
 (defn grouped-triple->string :- s/Str
@@ -241,14 +250,14 @@
   {:added "0.1.0"}
   ([t :- GroupedTriple] (grouped-triple->string "[%s %s %s]" t))
   ([fmt :- s/Str
-    {:keys [subject-group object-group predicate negation]} :- GroupedTriple]
+    {:keys [subject-group object-group predicate]} :- GroupedTriple]
 	    (format fmt
 		    (print-str (mapv word-map->text subject-group))
-		    (str (if (keyword? predicate)
-			   (str predicate)
-			   (word-map->text predicate))
-			 (if negation
-			   (str "[" (word-map->text negation) "]")))
+		    (str (if (:derived? predicate)
+			   (str (:word predicate))
+			   (word-map->text (:word predicate)))
+			 (if (:negation predicate)
+			   (str "[" (word-map->text (:negation predicate)) "]")))
 		    (print-str (mapv word-map->text object-group)))))
 
 (defn reified-triple->string :- s/Str
@@ -256,12 +265,8 @@
   {:added "0.1.0"}
   ([t :- ReifiedTriple] (reified-triple->string "[%s %s %s]" t))
   ([fmt :- s/Str
-    {:keys [subject object predicate negation]} :- ReifiedTriple]
-     (format fmt
-	     (:symbol subject)
-	     (str predicate
-		  (str "[" (word-map->text negation) "]"))
-	     (:symbol object))))
+    {:keys [subject object predicate]} :- ReifiedTriple]
+     (apply format fmt (mapv :symbol [subject predicate object]))))
 
 (defn reified-triple->vector
   :- [(s/one s/Symbol "subject")
@@ -274,17 +279,14 @@ of the triple are available in the metadata of the appropriate element
 in the vector."
   {:added "0.1.0"}
   [{:keys [subject object predicate] :as t} :- ReifiedTriple]
-  (with-meta
-    [(with-meta (:symbol subject) subject)
-     predicate
-     (with-meta (:symbol object) object)]
+  (with-meta (mapv :symbol [subject predicate object])
     (meta t)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Predicates for working with part of speech tags
 
 (def TagMap
-  (s/maybe {:tag s/Str s/Any s/Any}))
+  (s/maybe {:tag s/Str, s/Any s/Any}))
 
 (defn has-tags? :- s/Bool
   [tags :- #{s/Str}
@@ -356,8 +358,7 @@ in terms of `depends`."
   {:no-doc true :added "0.1.0"}
   [& syms]
   `(do
-     ~@(for [s syms
-	     :let [s (vary-meta s assoc :no-check false)]]
+     ~@(for [s syms]
 	 `(defn ~s
 	   ~(str "Typed dependency relation `" s "`.")
 	   [~'governor ~'dependent]
@@ -368,8 +369,7 @@ in terms of `depends`."
   {:no-doc true :added "0.1.0"}
   [& syms]
   `(do
-     ~@(for [s syms
-	     :let [s (vary-meta s assoc :no-check false)]]
+     ~@(for [s syms]
 	 `(defn ~s
 	    ~(str "Collapsed typed dependency relation `" s "`.")
 	    [~'relation ~'governor ~'dependent]
@@ -406,9 +406,7 @@ in terms of `depends`."
    (l/fresh [index tag sentence]
      (l/featurec mention {:sentence sentence})
      (word-map q)
-     (l/pred q #(or (pronoun? %1)
-		    (noun? %1)
-		    (determiner? %1)))
+     (l/pred q (some-fn pronoun? noun? determiner?))
      (l/featurec q {:index index, :sentence sentence})
      (l/pred index (partial span/point-inside? mention)))))
 
@@ -565,9 +563,11 @@ in terms of `depends`."
 
     (l/project [subject predicate object negation query-name]
       (l/== q {:subject subject
-	       :predicate predicate
+	       :predicate {:derived? (keyword? predicate)
+                           :type :predicate
+                           :word predicate
+                           :negation negation}
 	       :object object
-	       :negation negation
 	       :query query-name}))))
 
 (defn triples :- [Triple]
@@ -588,13 +588,16 @@ in terms of `depends`."
 	(l/featurec triple {:subject subject, :object object})
 	(linked-word-maps subject subject-group)
 	(linked-word-maps object object-group)
+
+        ;; prevent triples where subject and object refer to the same word group
+        (l/!= subject-group object-group)
+
 	(l/project [triple subject-group object-group]
 		   (l/== q (with-meta
 			     {:type          :grouped-triple
 			      :subject-group subject-group
 			      :predicate     (:predicate triple)
-			      :object-group  object-group
-			      :negation      (:negation triple)}
+			      :object-group  object-group}
 			     {:origin triple}))))))))
 
 (defn representative-symbol :- s/Symbol
@@ -615,30 +618,35 @@ in terms of `depends`."
 		(str/join "-"))]
     (symbol (if (Character/isDigit ^Character (nth s 0)) (str "num-" s) s))))
 
+(defnk reify-triple-predicate :- ReifiedTriplePredicate
+  [derived? word negation]
+  {:type :reified-triple-predicate
+   :symbol (keyword (str (if negation
+                           "not-")
+                         (if (keyword? word)
+                           (name word)
+                           (:lemma word))))
+   :negated? (boolean negation)})
+
 (defn ^:private reify-triple :- ReifiedTriple
   [group->unique-symbol :- {[Word] s/Symbol}
    {:keys [subject-group predicate object-group negation] :as t} :- GroupedTriple]
   (let [subject-sym (group->unique-symbol subject-group)
-	pred-sym    (if (keyword? predicate)
-		      predicate
-		      (keyword (:lemma predicate)))
-	pred-sym   (if negation
-		     (keyword (str "not-" (name pred-sym)))
-		     pred-sym)
+	pred        (reify-triple-predicate predicate)
 	object-sym  (group->unique-symbol object-group)]
-    (if (and subject-sym pred-sym object-sym)
+    (if (and subject-sym pred object-sym)
       (with-meta
 	{:type      :reified-triple
 	 :subject   {:type   :reified-word-group
 		     :symbol subject-sym
 		     :group  subject-group}
-	 :predicate pred-sym
+	 :predicate pred
 	 :object    {:type   :reified-word-group
 		     :symbol object-sym
 		     :group  object-group}}
 	(meta t))
       (throw (ex-info (format "Couldn't find symbol: [%s %s %s]"
-			      subject-sym pred-sym object-sym)
+			      subject-sym pred object-sym)
 		      {:grouped-triple t
 		       :group->unique-symbol group->unique-symbol})))))
 
