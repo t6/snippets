@@ -1,15 +1,15 @@
 (ns t6.snippets.nlp
   (:refer-clojure :exclude [conj ref mod num comp agent defn])
   (:require [schema.core :as s :refer (defn defschema)]
-	    [plumbing.core :refer (defnk fnk letk for-map)]
-	    [clojure.string :as str]
-	    [clojure.set :as set]
-	    [clojure.core.logic :as l]
-	    [clojure.walk :refer (postwalk)]
-	    [clojure.tools.macro :refer (name-with-attributes)]
-	    [schema.core :as s]
-	    [t6.snippets.span :as span]
-	    [t6.snippets.util :as u]))
+            [plumbing.core :refer (defnk fnk letk for-map)]
+            [clojure.string :as str]
+            [clojure.set :as set]
+            [clojure.core.logic :as l]
+            [clojure.walk :refer (postwalk)]
+            [clojure.tools.macro :refer (name-with-attributes)]
+            [schema.core :as s]
+            [t6.snippets.span :as span]
+            [t6.snippets.util :as u]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; NLP data structures
@@ -69,7 +69,7 @@
   function that maps the nodes to their adjacent nodes (-> :adjacent).
 
   :span  The graph corresponds to a sentence in the input text. Thus the
-	 span of a semantic graph refers to a substring of the input text.
+         span of a semantic graph refers to a substring of the input text.
   :index The position of the graph's sentence in the text
   "
   {:type  (s/enum :semantic-graph)
@@ -237,13 +237,13 @@
   ([fmt :- s/Str
     {:keys [subject predicate object]} :- TriplePrimitive]
     (format fmt
-	    (word->text subject)
-	    (str (if (:derived? predicate)
-		   (str (:word predicate))
-		   (word->text (:word predicate)))
-		 (if (:negation predicate)
-		   (str "[" (word->text (:negation predicate)) "]")))
-	    (word->text object))))
+            (word->text subject)
+            (str (if (:derived? predicate)
+                   (str (:word predicate))
+                   (word->text (:word predicate)))
+                 (if (:negation predicate)
+                   (str "[" (word->text (:negation predicate)) "]")))
+            (word->text object))))
 
 (defn grouped-triple-primitive->string :- s/Str
   "grouped-triple->string"
@@ -251,14 +251,14 @@
   ([t :- GroupedTriplePrimitive] (grouped-triple-primitive->string "[%s %s %s]" t))
   ([fmt :- s/Str
     {:keys [subject-group object-group predicate]} :- GroupedTriplePrimitive]
-	    (format fmt
-		    (print-str (mapv word->text subject-group))
-		    (str (if (:derived? predicate)
-			   (str (:word predicate))
-			   (word->text (:word predicate)))
-			 (if (:negation predicate)
-			   (str "[" (word->text (:negation predicate)) "]")))
-		    (print-str (mapv word->text object-group)))))
+            (format fmt
+                    (print-str (mapv word->text subject-group))
+                    (str (if (:derived? predicate)
+                           (str (:word predicate))
+                           (word->text (:word predicate)))
+                         (if (:negation predicate)
+                           (str "[" (word->text (:negation predicate)) "]")))
+                    (print-str (mapv word->text object-group)))))
 
 (defn triple->string :- s/Str
   "triple->string"
@@ -317,7 +317,7 @@ in the vector."
   [{:keys [tag] :as m} :- TagMap]
   (if (string? tag)
     (boolean (and (noun? m)
-		  (.endsWith ^String tag "S")))
+                  (.endsWith ^String tag "S")))
     false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -345,7 +345,7 @@ in the vector."
   (fn [a]
     (l/to-stream
      (for [graph (:semantic-graphs *db*)
-	   n     (:nodes graph)]
+           n     (:nodes graph)]
        (l/unify a node n)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -359,10 +359,10 @@ in terms of `depends`."
   [& syms]
   `(do
      ~@(for [s syms]
-	 `(defn ~s
-	   ~(str "Typed dependency relation `" s "`.")
-	   [~'governor ~'dependent]
-	   (edge ~'governor ~(keyword (name s)) ~'dependent)))))
+         `(defn ~s
+           ~(str "Typed dependency relation `" s "`.")
+           [~'governor ~'dependent]
+           (edge ~'governor ~(keyword (name s)) ~'dependent)))))
 
 (defmacro defcollapsedrelations
   "See `defrelations`."
@@ -370,10 +370,10 @@ in terms of `depends`."
   [& syms]
   `(do
      ~@(for [s syms]
-	 `(defn ~s
-	    ~(str "Collapsed typed dependency relation `" s "`.")
-	    [~'relation ~'governor ~'dependent]
-	    (edge ~'governor [~(keyword (name s)) ~'relation] ~'dependent)))))
+         `(defn ~s
+            ~(str "Collapsed typed dependency relation `" s "`.")
+            [~'relation ~'governor ~'dependent]
+            (edge ~'governor [~(keyword (name s)) ~'relation] ~'dependent)))))
 
 (declare
  dep aux auxpass cop arg agent comp acomp ccomp xcomp obj dobj iobj
@@ -484,10 +484,10 @@ in terms of `depends`."
   [w q]
   (l/project [w]
     (->> (l/run-nc* [q] (linked w q))
-	distinct
-	(sort-by (juxt :sentence :index))
-	vec
-	(l/== q))))
+        distinct
+        (sort-by (juxt :sentence :index))
+        vec
+        (l/== q))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Triple creation
@@ -507,27 +507,27 @@ in terms of `depends`."
       (l/conde
        ;; check if predicate has a "neg" relation with some other word
        [(neg predicate negation)
-	(l/pred negation #(has-tags? #{"RB"} %1))]
+        (l/pred negation #(has-tags? #{"RB"} %1))]
 
        ;; check if the object has a "neg" relation with some other word
        [(neg object negation)
-	(l/pred negation #(has-tags? #{"RB"} %1))]
+        (l/pred negation #(has-tags? #{"RB"} %1))]
 
        ;; look for a verb without its own subject and check if it's negated
        ;; which we interpret to also negate the triple's predicate
        [(l/fresh [verb]
-	  (xcomp verb predicate)
-	  (l/pred verb verb?)
-	  (neg verb negation)
-	  (l/pred negation #(has-tags? #{"RB"} %1)))]
+          (xcomp verb predicate)
+          (l/pred verb verb?)
+          (neg verb negation)
+          (l/pred negation #(has-tags? #{"RB"} %1)))]
 
        ;; if the predicate has no corresponding word in the semantic graph
        ;; check if there is a determiner attached and if that determiner
        ;; is "no"
        ;; TODO: there are probably more determiners than "no" here
        [(l/pred predicate keyword?)
-	(det subject negation)
-	(l/featurec negation {:tag :DT :lemma "no"})])]
+        (det subject negation)
+        (l/featurec negation {:tag :DT :lemma "no"})])]
 
      ;; no negation!
      [(l/== negation nil)])
@@ -539,7 +539,7 @@ in terms of `depends`."
     (if (and ns name)
       (symbol (str (.getName ns)) (str name))
       (throw (ex-info "No name for triple query"
-		      {:query v})))))
+                      {:query v})))))
 
 (defn ^:private triple-queries
   [q]
@@ -557,12 +557,12 @@ in terms of `depends`."
     (l/project [subject predicate object negation query-name]
       (l/== q {:type :triple-primitive
                :subject subject
-	       :predicate {:derived? (keyword? predicate)
+               :predicate {:derived? (keyword? predicate)
                            :type :predicate-primitive
                            :word predicate
                            :negation negation}
-	       :object object
-	       :query query-name}))))
+               :object object
+               :query query-name}))))
 
 (defn triple-primitives :- [TriplePrimitive]
   "triples"
@@ -578,38 +578,38 @@ in terms of `depends`."
    (distinct
     (l/run-nc* [q]
       (l/fresh [triple subject object subject-group object-group]
-	(triple-queries triple)
-	(l/featurec triple {:subject subject, :object object})        
-	(linked-words subject subject-group)
-	(linked-words object object-group)
+        (triple-queries triple)
+        (l/featurec triple {:subject subject, :object object})
+        (linked-words subject subject-group)
+        (linked-words object object-group)
 
         ;; prevent triples where subject and object refer to the same word group
         (l/!= subject-group object-group)
 
-	(l/project [triple subject-group object-group]
-		   (l/== q (with-meta
-			     {:type          :grouped-triple-primitive
-			      :subject-group subject-group
-			      :predicate     (:predicate triple)
-			      :object-group  object-group}
-			     {:origin triple}))))))))
+        (l/project [triple subject-group object-group]
+                   (l/== q (with-meta
+                             {:type          :grouped-triple-primitive
+                              :subject-group subject-group
+                              :predicate     (:predicate triple)
+                              :object-group  object-group}
+                             {:origin triple}))))))))
 
 (defn representative-symbol :- s/Symbol
   [words :- [Word]]
   (let [;; to build nice looking symbols, try to only build it out of
-	;; nouns. If this is impossible use pronouns, then all words.
-	ws (filter noun? words)
-	ws (if (empty? ws)
-	     (filter pronoun? words)
-	     ws)
-	ws (if (empty? ws)
-	     words
-	     ws)
-	s  (->> ws
-		(map (fnk [lemma] (str/lower-case lemma)))
-		sort
-		distinct
-		(str/join "-"))]
+        ;; nouns. If this is impossible use pronouns, then all words.
+        ws (filter noun? words)
+        ws (if (empty? ws)
+             (filter pronoun? words)
+             ws)
+        ws (if (empty? ws)
+             words
+             ws)
+        s  (->> ws
+                (map (fnk [lemma] (str/lower-case lemma)))
+                sort
+                distinct
+                (str/join "-"))]
     (symbol (if (Character/isDigit ^Character (nth s 0)) (str "num-" s) s))))
 
 (defnk reify-predicate :- Predicate
@@ -626,23 +626,23 @@ in terms of `depends`."
   [group->unique-symbol :- {[Word] s/Symbol}
    {:keys [subject-group predicate object-group negation] :as t} :- GroupedTriplePrimitive]
   (let [subject-sym (group->unique-symbol subject-group)
-	pred        (reify-predicate predicate)
-	object-sym  (group->unique-symbol object-group)]
+        pred        (reify-predicate predicate)
+        object-sym  (group->unique-symbol object-group)]
     (if (and subject-sym pred object-sym)
       (with-meta
-	{:type      :triple
-	 :subject   {:type   :word-group
-		     :symbol subject-sym
-		     :group  subject-group}
-	 :predicate pred
-	 :object    {:type   :word-group
-		     :symbol object-sym
-		     :group  object-group}}
-	(meta t))
+        {:type      :triple
+         :subject   {:type   :word-group
+                     :symbol subject-sym
+                     :group  subject-group}
+         :predicate pred
+         :object    {:type   :word-group
+                     :symbol object-sym
+                     :group  object-group}}
+        (meta t))
       (throw (ex-info (format "Couldn't find symbol: [%s %s %s]"
-			      subject-sym pred object-sym)
-		      {:grouped-triple t
-		       :group->unique-symbol group->unique-symbol})))))
+                              subject-sym pred object-sym)
+                      {:grouped-triple t
+                       :group->unique-symbol group->unique-symbol})))))
 
 (defn ^:private symbol->groups :- {s/Symbol #{[Word]}}
   [grouped-triples :- [GroupedTriplePrimitive]]
@@ -650,14 +650,14 @@ in terms of `depends`."
        ;; build a sequence of maps that map a symbol to the set of all
        ;; noun groups that have that symbol
        (map (fnk [subject-group predicate object-group]
-	      ;; This needs to be merged because the subject's and
-	      ;; object's symbol might be the same while subject !=
-	      ;; object (they might be in different noun groups) if we
-	      ;; would not merge here we would potentially loose noun
-	      ;; groups
-	      (merge-with set/union
-			  {(representative-symbol subject-group) #{subject-group}}
-			  {(representative-symbol object-group) #{object-group}})))
+              ;; This needs to be merged because the subject's and
+              ;; object's symbol might be the same while subject !=
+              ;; object (they might be in different noun groups) if we
+              ;; would not merge here we would potentially loose noun
+              ;; groups
+              (merge-with set/union
+                          {(representative-symbol subject-group) #{subject-group}}
+                          {(representative-symbol object-group) #{object-group}})))
        ;; merge everything into one big map while taking care not to
        ;; loose some noun groups while doing so
        (reduce (partial merge-with set/union) {})))
@@ -665,7 +665,7 @@ in terms of `depends`."
 (defn ^:private group->unique-symbol
   [grouped-triples]
   (for-map [[sym groups] (symbol->groups grouped-triples)
-	    [i group] (map-indexed vector groups)]
+            [i group] (map-indexed vector groups)]
     group (symbol (str sym "-" i))))
 
 (defn reify-triples :- [Triple]
@@ -723,46 +723,46 @@ in terms of `depends`."
       "Check your `=>` usages. You need to provide at least one triple template!"))
     `(l/conde
       ~@(for [template templates]
-	  `[(l/== ~triple ~template)
-	    (l/project [~triple]
-		       (do #_(validate-triple ~var ~triple)
-			   l/succeed))]))))
+          `[(l/== ~triple ~template)
+            (l/project [~triple]
+                       (do #_(validate-triple ~var ~triple)
+                           l/succeed))]))))
 
 (defmacro defquery
   [name & goals]
   (let [[name goals] (name-with-attributes name goals)
-	triple       (gensym "triple")
-	lvars        (atom {})
-	counter      (atom -1)
-	name         (vary-meta name assoc
-				:no-check true
-				:arglists ''([triple])
-				:query? true)
-	goals        (clojure.walk/postwalk
-		      (fn [x]
-			(cond
-			 (and (symbol? x)
-			      (= (first (str x)) \?))
-			 (do
-			   (swap! lvars update-in [x] #(inc (or %1 0)))
-			   x)
+        triple       (gensym "triple")
+        lvars        (atom {})
+        counter      (atom -1)
+        name         (vary-meta name assoc
+                                :no-check true
+                                :arglists ''([triple])
+                                :query? true)
+        goals        (clojure.walk/postwalk
+                      (fn [x]
+                        (cond
+                         (and (symbol? x)
+                              (= (first (str x)) \?))
+                         (do
+                           (swap! lvars update-in [x] #(inc (or %1 0)))
+                           x)
 
-			 (= x '_)
-			 `(l/lvar ~(str "underscore" (swap! counter inc)))
+                         (= x '_)
+                         `(l/lvar ~(str "underscore" (swap! counter inc)))
 
-			 (and (seq? x)
-			      (= '=> (first x)))
-			 `(=> (var ~name) ~triple ~@(rest x))
+                         (and (seq? x)
+                              (= '=> (first x)))
+                         `(=> (var ~name) ~triple ~@(rest x))
 
-			 :else
-			 x))
-		      goals)]
+                         :else
+                         x))
+                      goals)]
     (doseq [[sym n] @lvars]
       (condp = n
-	1 (println
-	   (format "WARNING: Variable `%s` is used only once. Consider replacing `%s` with `_`?"
-		   sym sym))
-	nil))
+        1 (println
+           (format "WARNING: Variable `%s` is used only once. Consider replacing `%s` with `_`?"
+                   sym sym))
+        nil))
 
     `(do (def ~name
            (with-meta
