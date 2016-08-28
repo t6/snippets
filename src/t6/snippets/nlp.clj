@@ -1,12 +1,12 @@
 (ns t6.snippets.nlp
   (:refer-clojure :exclude [conj ref mod num comp agent defn])
-  (:require [schema.core :as s :refer (defn defschema)]
-            [plumbing.core :refer (defnk fnk letk for-map)]
+  (:require [schema.core :as s :refer [defn defschema]]
+            [plumbing.core :refer [defnk fnk letk for-map]]
             [clojure.string :as str]
             [clojure.set :as set]
             [clojure.core.logic :as l]
-            [clojure.walk :refer (postwalk)]
-            [clojure.tools.macro :refer (name-with-attributes)]
+            [clojure.walk :refer [postwalk]]
+            [clojure.tools.macro :refer [name-with-attributes]]
             [schema.core :as s]
             [t6.snippets.span :as span]
             [t6.snippets.util :as u]))

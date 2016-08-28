@@ -8,7 +8,7 @@
   :added "0.1.0"
   :arglists (quote ([{:keys [text pipeline queries]}]))}
 (fact "Create a new lazy NLP model, that uses the given map as basis."
-  (create {:pipeline {:type :clearnlp :text "This is a test."}})
+      (create {:pipeline {:type :clearnlp :text "This is a test."}})
   #_(let [model (create {:pipeline {:type :clearnlp}
                        :text "This is a test."})]
     (set (keys model)) => (contains #{:text :sentences :semantic-graphs :tokens

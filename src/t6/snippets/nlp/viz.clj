@@ -1,7 +1,7 @@
 (ns t6.snippets.nlp.viz
   (:refer-clojure :exclude [defn])
-  (:require [schema.core :as s :refer (defn)]
-            [plumbing.core :refer (fnk)]
+  (:require [schema.core :as s :refer [defn]]
+            [plumbing.core :refer [fnk]]
             [clojure.string :as str]
             [rhizome.dot :as dot]
             [rhizome.viz :as viz]

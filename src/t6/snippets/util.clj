@@ -1,8 +1,8 @@
 (ns t6.snippets.util
   (:refer-clojure :exclude [defn])
-  (:require [schema.core :as s :refer (defn)]
+  (:require [schema.core :as s :refer [defn]]
             [lazymap.core :as lazymap]
-	    [camel-snake-kebab.core :refer (->kebab-case)]))
+            [camel-snake-kebab.core :refer (->kebab-case)]))
 
 (defn enum->keyword :- (s/maybe s/Keyword)
   [e :- (s/maybe Enum)]

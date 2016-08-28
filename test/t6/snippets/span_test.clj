@@ -1,5 +1,5 @@
 (ns t6.snippets.span-test
-  (:refer-clojure :exclude [subs])
+  (:refer-clojure :exclude [subs update])
   (:use midje.sweet)
   (:require [schema.core :as s]
             [t6.snippets.span :refer :all])

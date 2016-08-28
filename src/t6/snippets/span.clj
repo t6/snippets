@@ -1,7 +1,7 @@
 (ns t6.snippets.span
   "Utility functions for transforming and modifying spans."
-  (:refer-clojure :exclude [subs defn])
-  (:require [schema.core :as s :refer (defn)]))
+  (:refer-clojure :exclude [subs defn update])
+  (:require [schema.core :as s :refer [defn]]))
 
 (def Span
   "A span `[x y]` describes a range starting at `x` and ending at `y`."

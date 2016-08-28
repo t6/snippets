@@ -10,6 +10,6 @@
                  [com.clearnlp/clearnlp-general-en-dep "1.2"]
                  [com.clearnlp/clearnlp-general-en-srl "1.1"]
 
-                 [org.apache.opennlp/opennlp-tools "1.5.3"]
+                 [org.apache.opennlp/opennlp-tools "1.6.0"]
                  [edu.washington.cs.knowitall/opennlp-tokenize-models "1.5"]
                  [edu.washington.cs.knowitall/opennlp-sent-models "1.5"]])

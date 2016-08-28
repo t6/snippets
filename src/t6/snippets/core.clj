@@ -3,16 +3,16 @@
   to be computed twice. The graph caches the result of the computations. It
   uses plumbing's lazy graph compiler. Define new steps of the algorithm here."
   (:refer-clojure :exclude [defn])
-  (:require [schema.core :as s :refer (defn)]
-	    [plumbing.core :refer (fnk defnk letk)]
-	    [plumbing.fnk.pfnk :as pfnk]
-	    [plumbing.graph :as graph]
-	    [clojure.string :as str]
-	    [clojure.set :as set]
-	    [t6.snippets.nlp :as nlp]
+  (:require [schema.core :as s :refer [defn]]
+            [plumbing.core :refer [fnk defnk letk]]
+            [plumbing.fnk.pfnk :as pfnk]
+            [plumbing.graph :as graph]
+            [clojure.string :as str]
+            [clojure.set :as set]
+            [t6.snippets.nlp :as nlp]
             [t6.snippets.util :as u]
-	    [t6.snippets.span :as span]
-	    t6.snippets.triples))
+            [t6.snippets.span :as span]
+            t6.snippets.triples))
 
 (defn log [what]
   ;; TODO
@@ -57,8 +57,8 @@
 
    :grouped-triple-primitives
    (fnk [semantic-graphs :- [nlp/SemanticGraph],
-	 coreferences ;; :- nlp/CorefChainMap,
-	 queries
+         coreferences ;; :- nlp/CorefChainMap,
+         queries
          :as this]
      (log "realizing :grouped-triple-primitives")
      (nlp/with-db this (nlp/grouped-triple-primitives)))
@@ -78,12 +78,12 @@
   "Create a new lazy NLP model based on the given map.
 
   (let [model (create {:pipeline (nlp/pipeline {:type :clearnlp})
-		       :text \"This is a test.\"})]
+                       :text \"This is a test.\"})]
     (set (keys model)) => (contains #{:text :sentences :semantic-graphs :tokens
-				      :coreferences :triples :grouped-triples
-				      :reified-triples})
+                                      :coreferences :triples :grouped-triples
+                                      :reified-triples})
     (-> model :sentences) => (just (contains {:text \"This is a test.\"
-					      :span [0 15]})))"
+                                              :span [0 15]})))"
   {:added "0.1.0"}
   ([m] (create {} m))
   ([graph m]

@@ -3,6 +3,6 @@
   :description "Dependencies for snippets' CoreNLP pipeline"
   :deploy-repositories [["releases" :clojars]
                         ["snapshots" :clojars]]
-  :dependencies [[edu.stanford.nlp/stanford-corenlp "3.5.1"]
-                 [edu.stanford.nlp/stanford-corenlp "3.5.1"
+  :dependencies [[edu.stanford.nlp/stanford-corenlp "3.6.0"]
+                 [edu.stanford.nlp/stanford-corenlp "3.6.0"
                   :classifier "models"]])

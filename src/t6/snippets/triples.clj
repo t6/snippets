@@ -1,5 +1,5 @@
 (ns t6.snippets.triples
-  (:require [t6.snippets.nlp :as nlp :refer (defquery =>)]
+  (:require [t6.snippets.nlp :as nlp :refer [defquery =>]]
             [clojure.core.logic :as l]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

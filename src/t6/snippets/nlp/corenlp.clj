@@ -1,17 +1,17 @@
 (ns t6.snippets.nlp.corenlp
   (:refer-clojure :exclude [not chunk char defn])
-  (:require [schema.core :as s :refer (defn defschema)]
-            [plumbing.core :refer (for-map fnk)]
+  (:require [schema.core :as s :refer [defn defschema]]
+            [plumbing.core :refer [for-map fnk]]
             [clojure.string :as str]
             [clojure.java.io :as io]
-            [camel-snake-kebab.core :refer (->kebab-case)]
+            [camel-snake-kebab.core :refer [->kebab-case]]
             [t6.snippets.nlp :as nlp]
             [t6.snippets.util :as u])
   (:import (edu.stanford.nlp.ling CoreAnnotation IndexedWord)
            (edu.stanford.nlp.pipeline StanfordCoreNLP Annotation)
            (edu.stanford.nlp.util TypesafeMap)
            (edu.stanford.nlp.semgraph SemanticGraphEdge)
-           (edu.stanford.nlp.dcoref CorefChain CorefChain$CorefMention)
+           (edu.stanford.nlp.hcoref.data CorefChain CorefChain$CorefMention)
            (java.lang.reflect ParameterizedType Method Type)
            (java.net URL)
            (java.util Properties)
@@ -197,7 +197,7 @@
   edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations
   edu.stanford.nlp.trees.TreeCoreAnnotations
   edu.stanford.nlp.ie.machinereading.structure.MachineReadingAnnotations
-  edu.stanford.nlp.dcoref.CorefCoreAnnotations
+  edu.stanford.nlp.hcoref.CorefCoreAnnotations
   edu.stanford.nlp.international.arabic.process.ArabicDocumentReaderAndWriter
   edu.stanford.nlp.trees.GrammaticalRelation
   edu.stanford.nlp.ling.ChineseCoreAnnotations
